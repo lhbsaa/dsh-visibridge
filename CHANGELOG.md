@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **vision-bridge** are documented in this file.
+All notable changes to **dsh-visibridge** are documented in this file.
 
 The plugin started as a session-scoped dynamic Cordis plugin (`vision-3`, v1–v10) and was later migrated to a **host-level profile bundle** that survives dsh restarts. Versioning below reflects the package's own history, with the dynamic-plugin iterations summarized under **1.0.0** as the foundation.
 

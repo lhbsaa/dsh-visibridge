@@ -1,4 +1,4 @@
-# vision-bridge
+# dsh-visibridge
 
 **Host-level vision plugin for DeepSeek Harness (dsh)** — adds image recognition to text-only models (DeepSeek, GLM, etc.).
 
@@ -32,7 +32,7 @@ The `analyze_image` tool sends an image to a configured vision model (local Olla
 DeepSeek V4 (text-only, cannot see images)
    │ calls analyze_image tool
    ▼
-vision-bridge (host plugin, loaded at dsh startup)
+dsh-visibridge (host plugin, loaded at dsh startup)
    ├─ reads dsh-vision-config.json (backend/model/key ref)
    ├─ local image → base64 data URL; URL passed through
    ├─ POST /v1/chat/completions → vision model
@@ -44,7 +44,7 @@ vision-bridge (host plugin, loaded at dsh startup)
 Mounted as a **profile bundle** (same mechanism as ModLens / dshmarket):
 
 ```
-dsh starts → reads dsh.profile.bundles → loads vision-bridge's dsh.bundle.patch
+dsh starts → reads dsh.profile.bundles → loads dsh-visibridge's dsh.bundle.patch
           → plugin row inserted into host composition → analyze_image registered globally
 ```
 
@@ -66,16 +66,16 @@ dsh starts → reads dsh.profile.bundles → loads vision-bridge's dsh.bundle.pa
 
 ### 1. Place the plugin package
 
-Copy the whole `vision-bridge` directory into the profile's node_modules:
+Copy the whole `dsh-visibridge` directory into the profile's node_modules:
 
 ```powershell
-$src = 'G:\gitub-peo\vision-bridge'
+$src = 'G:\gitub-peo\dsh-visibridge'
 
 # Target 1: profile node_modules
-Copy-Item $src 'C:\Users\Administrator\.dsh\profiles\web\node_modules\vision-bridge' -Recurse -Force
+Copy-Item $src 'C:\Users\Administrator\.dsh\profiles\web\node_modules\dsh-visibridge' -Recurse -Force
 
 # Target 2: global npm node_modules (so dsh's loader resolves from either context)
-Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\vision-bridge' -Recurse -Force
+Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\dsh-visibridge' -Recurse -Force
 ```
 
 > ⚠️ Both locations matter: dsh's plugin loader resolves bare package names from the **installation directory**, while `resolveBundleDir` resolves from the profile. Two copies are the safest.
@@ -90,7 +90,7 @@ Edit the profile manifest `~\.dsh\profiles\web\package.json`:
   "private": true,
   "dependencies": {
     "dshmarket": "^1.5.0",
-    "vision-bridge": "link:./node_modules/vision-bridge"
+    "dsh-visibridge": "link:./node_modules/dsh-visibridge"
   },
   "dsh": {
     "profile": {
@@ -98,22 +98,22 @@ Edit the profile manifest `~\.dsh\profiles\web\package.json`:
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-web-app",
         "dshmarket",
-        "vision-bridge"
+        "dsh-visibridge"
       ]
     }
   }
 }
 ```
 
-(Append `"vision-bridge"` to the `bundles` array.)
+(Append `"dsh-visibridge"` to the `bundles` array.)
 
 ### 3. Verify the composed config (optional)
 
 ```powershell
-npx -y @deepseek-ai/dsh --profile web --dump-config | Select-String 'vision-bridge'
+npx -y @deepseek-ai/dsh --profile web --dump-config | Select-String 'dsh-visibridge'
 ```
 
-You should see `- id: vision-bridge` / `name: vision-bridge`.
+You should see `- id: dsh-visibridge` / `name: dsh-visibridge`.
 
 ### 4. Restart dsh
 
@@ -206,8 +206,8 @@ Or just tell the AI "switch to Ollama / Xiaomi" and let it edit the config.
 
 | Symptom | Fix |
 |---------|-----|
-| No `analyze_image` tool after restart | Confirm both node_modules copies exist, `bundles` contains `vision-bridge`, and dsh was fully restarted (all node processes killed) |
-| `[vision-bridge] tools service not available` | The plugin must use `inject: ['tools', ...]` (already built in — don't remove) |
+| No `analyze_image` tool after restart | Confirm both node_modules copies exist, `bundles` contains `dsh-visibridge`, and dsh was fully restarted (all node processes killed) |
+| `[dsh-visibridge] tools service not available` | The plugin must use `inject: ['tools', ...]` (already built in — don't remove) |
 | Result says "degraded extraction" | Vision model didn't output JSON; Ollama uses json_schema to force it — if it persists, check model support |
 | Xiaomi API errors | Confirm `XIAOMI_MIMO_API_KEY` is configured (credentials.yaml or env var) |
 | Image over limit | Raise `maxBytes` or compress the image first |
@@ -216,8 +216,8 @@ Or just tell the AI "switch to Ollama / Xiaomi" and let it edit the config.
 
 ## Uninstall / rollback
 
-1. `~\.dsh\profiles\web\package.json`: remove `"vision-bridge"` from `bundles`
-2. Delete both `node_modules\vision-bridge` directories
+1. `~\.dsh\profiles\web\package.json`: remove `"dsh-visibridge"` from `bundles`
+2. Delete both `node_modules\dsh-visibridge` directories
 3. Restart dsh
 
 ---

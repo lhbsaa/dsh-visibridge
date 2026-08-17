@@ -1,4 +1,5 @@
-# dsh bundle patch: inserts the vision-bridge plugin into the profile layer stack.
+# dsh bundle patch: inserts the dsh-visibridge plugin into the profile layer stack.
 - insert:
-    - id: vision-bridge
-      name: 'vision-bridge'
+    - id: dsh-visibridge
+      name: 'dsh-visibridge'
+

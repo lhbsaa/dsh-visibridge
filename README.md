@@ -1,4 +1,4 @@
-# vision-bridge
+# dsh-visibridge
 
 **DeepSeek Harness（dsh）宿主级视觉插件** —— 为纯文本模型（DeepSeek、GLM 等）补全图像识别能力。
 
@@ -32,7 +32,7 @@
 DeepSeek V4（纯文本，看不到图）
    │ 调用 analyze_image 工具
    ▼
-vision-bridge（宿主插件，dsh 启动即加载）
+dsh-visibridge（宿主插件，dsh 启动即加载）
    ├─ 读取 dsh-vision-config.json（backend/model/密钥引用）
    ├─ 本地图片 → base64 data URL；URL 直传
    ├─ POST /v1/chat/completions → 视觉模型
@@ -44,7 +44,7 @@ vision-bridge（宿主插件，dsh 启动即加载）
 插件以 **profile bundle** 方式挂载（与 ModLens、dshmarket 同款机制）：
 
 ```
-dsh 启动 → 读 profile 的 dsh.profile.bundles → 加载 vision-bridge 包的 dsh.bundle.patch
+dsh 启动 → 读 profile 的 dsh.profile.bundles → 加载 dsh-visibridge 包的 dsh.bundle.patch
         → 插件行插入 host composition → analyze_image 全局注册
 ```
 
@@ -66,17 +66,17 @@ dsh 启动 → 读 profile 的 dsh.profile.bundles → 加载 vision-bridge 包�
 
 ### 1. 放置插件包
 
-将整个 `vision-bridge` 目录复制到 profile 的 node_modules：
+将整个 `dsh-visibridge` 目录复制到 profile 的 node_modules：
 
 ```powershell
 # 源目录（本副本所在位置）
-$src = 'G:\gitub-peo\vision-bridge'
+$src = 'G:\gitub-peo\dsh-visibridge'
 
 # 目标 1：profile node_modules
-Copy-Item $src 'C:\Users\Administrator\.dsh\profiles\web\node_modules\vision-bridge' -Recurse -Force
+Copy-Item $src 'C:\Users\Administrator\.dsh\profiles\web\node_modules\dsh-visibridge' -Recurse -Force
 
 # 目标 2：全局 npm node_modules（确保 dsh 的 loader 无论从哪个上下文都能解析）
-Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\vision-bridge' -Recurse -Force
+Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\dsh-visibridge' -Recurse -Force
 ```
 
 > ⚠️ 两个位置都要放：dsh 的插件 loader 从**安装目录**解析包名，而 profile 的 `resolveBundleDir` 从 profile 解析——双保险最稳。
@@ -91,7 +91,7 @@ Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\vision-b
   "private": true,
   "dependencies": {
     "dshmarket": "^1.5.0",
-    "vision-bridge": "link:./node_modules/vision-bridge"
+    "dsh-visibridge": "link:./node_modules/dsh-visibridge"
   },
   "dsh": {
     "profile": {
@@ -99,22 +99,22 @@ Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\vision-b
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-web-app",
         "dshmarket",
-        "vision-bridge"
+        "dsh-visibridge"
       ]
     }
   }
 }
 ```
 
-（在 `bundles` 数组末尾追加 `"vision-bridge"`。）
+（在 `bundles` 数组末尾追加 `"dsh-visibridge"`。）
 
 ### 3. 验证组合配置（可选）
 
 ```powershell
-npx -y @deepseek-ai/dsh --profile web --dump-config | Select-String 'vision-bridge'
+npx -y @deepseek-ai/dsh --profile web --dump-config | Select-String 'dsh-visibridge'
 ```
 
-应能看到 `- id: vision-bridge` / `name: vision-bridge`。
+应能看到 `- id: dsh-visibridge` / `name: dsh-visibridge`。
 
 ### 4. 重启 dsh
 
@@ -207,8 +207,8 @@ XIAOMI_MIMO_API_KEY: sk-xxxxxxxx
 
 | 现象 | 处理 |
 |------|------|
-| 重启后没有 `analyze_image` 工具 | 确认两处 node_modules 都有包 + `package.json` bundles 含 `vision-bridge` + 彻底重启（杀净 node 进程） |
-| `[vision-bridge] tools service not available` | 插件代码须用 `inject: ['tools', ...]`（本项目已内置，勿改动） |
+| 重启后没有 `analyze_image` 工具 | 确认两处 node_modules 都有包 + `package.json` bundles 含 `dsh-visibridge` + 彻底重启（杀净 node 进程） |
+| `[dsh-visibridge] tools service not available` | 插件代码须用 `inject: ['tools', ...]`（本项目已内置，勿改动） |
 | 识别返回"降级提取" | 视觉模型未按 JSON 输出；Ollama 后端已用 json_schema 强制，若仍出现请确认模型支持 |
 | 小米 API 报错 | 确认 `XIAOMI_MIMO_API_KEY` 已配置（credentials.yaml 或环境变量） |
 | 图片超限 | `maxBytes` 调大或先压缩图片 |
@@ -217,8 +217,8 @@ XIAOMI_MIMO_API_KEY: sk-xxxxxxxx
 
 ## 卸载 / 回滚
 
-1. `~\.dsh\profiles\web\package.json`：从 `bundles` 数组移除 `"vision-bridge"`
-2. 删除两处 `node_modules\vision-bridge` 目录
+1. `~\.dsh\profiles\web\package.json`：从 `bundles` 数组移除 `"dsh-visibridge"`
+2. 删除两处 `node_modules\dsh-visibridge` 目录
 3. 重启 dsh
 
 ---

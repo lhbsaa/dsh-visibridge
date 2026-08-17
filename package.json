@@ -1,5 +1,5 @@
 {
-  "name": "vision-bridge",
+  "name": "dsh-visibridge",
   "version": "1.0.0",
   "description": "Host-level vision bridge for text-only models: analyze_image tool (Ollama local / Xiaomi MiMo cloud / any OpenAI-compatible endpoint) returning structured evidence.",
   "type": "module",
