@@ -66,6 +66,8 @@ dsh starts → reads dsh.profile.bundles → loads dsh-visibridge's dsh.bundle.p
 
 ### 1. Place the plugin package
 
+> If the plugin is published to npm, skip the manual copy and use the official command below ("Install from npm").
+
 Copy the whole `dsh-visibridge` directory into the profile's node_modules:
 
 ```powershell
@@ -79,6 +81,16 @@ Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\dsh-visi
 ```
 
 > ⚠️ Both locations matter: dsh's plugin loader resolves bare package names from the **installation directory**, while `resolveBundleDir` resolves from the profile. Two copies are the safest.
+
+#### Install from npm (recommended if published)
+
+```powershell
+dsh plugin --profile web add dsh-visibridge
+```
+
+`dsh plugin` initializes the profile (with `@deepseek-ai/dsh-base` as the first layer), installs the package via pnpm, and — because the package declares `dsh.bundle` — automatically appends `dsh-visibridge` to the profile's `bundles` list (no manual manifest editing). Verify and start as in steps 3-4 below.
+
+**Local-directory install** (unpublished / development): `dsh plugin --profile web add G:\gitub-peo\dsh-visibridge` works too. Note that with a `link:`, the plugin modules are resolved from the **source directory**, so the runtime deps `@deepseek-ai/dsh-tools` / `@deepseek-ai/schemastery` must resolve inside the repo — **run `pnpm install` in the repo first** (this project declares them via peerDependencies + devDependencies). Once published to npm, pnpm handles this automatically.
 
 ### 2. Register the bundle
 
@@ -121,7 +133,25 @@ You should see `- id: dsh-visibridge` / `name: dsh-visibridge`.
 
 ### 5. Configure the vision backend
 
-Create `dsh-vision-config.json` in your workspace root:
+Config priority (low → high):
+
+```
+built-in defaults → cordis.yml plugin row config (Config schema) → workspace dsh-vision-config.json
+```
+
+`cordis.yml` values act as deployment-level defaults; the workspace `dsh-vision-config.json` can **override at runtime** (edit-and-go, no restart, and the agent may edit it too).
+
+Optional: configure in the profile's `cordis.patch.yml` (visible via `--dump-config`):
+
+```yaml
+- id: dsh-visibridge
+  name: dsh-visibridge
+  config:
+    backend: ollama
+    model: minicpm-v4.5
+```
+
+Or create `dsh-vision-config.json` in your workspace root:
 
 ```json
 {
@@ -186,8 +216,12 @@ Or just tell the AI "switch to Ollama / Xiaomi" and let it edit the config.
 | `maxTokens` | `8192` | Vision model output cap |
 | `maxBytes` | `8388608` | Image byte cap (8 MB) |
 | `authStyle` | auto | `"bearer"` / `"api-key"` (auto-detected per endpoint) |
-| `keepAlive` | `30m` local | Ollama keep-alive; `false` disables |
-| `structuredOutput` | on for local | `false` disables json_schema enforcement |
+| `keepAlive` | `30m` local | Ollama keep-alive; `false` disables (JSON file only) |
+| `structuredOutput` | on for local | `false` disables json_schema enforcement (JSON file only) |
+| `allowPrivateHosts` | `false` | Allow baseUrl to point at private/reserved addresses (blocked by default — see Security) |
+| `configFile` | `dsh-vision-config.json` | Name of the workspace override file (set in cordis.yml) |
+
+> `backend` can also be set in cordis.yml (deployment default); a workspace JSON `backend` takes precedence.
 
 ---
 
@@ -202,6 +236,16 @@ Or just tell the AI "switch to Ollama / Xiaomi" and let it edit the config.
 
 ---
 
+## Security notes
+
+- **baseUrl is validated by default**: localhost (local Ollama), known vendors (`xiaomimimo.com`) and public hosts are allowed; **private/reserved addresses are rejected** (RFC1918, link-local, CGNAT, multicast, `.local`, …) to prevent data exfiltration and SSRF. To use an internal endpoint explicitly set `"allowPrivateHosts": true`.
+- **Workspace config file**: `dsh-vision-config.json` is read from the session workspace — **be careful opening untrusted repositories** that ship their own copy: it can redirect the vision backend (image content is sent there). Only place this file in directories you trust.
+- **Cloud backends send images out**: with `xiaomi` or a `custom` cloud endpoint, local images are uploaded as base64 to that endpoint. The local Ollama backend uploads nothing by default.
+- **Remote image URLs**: `http(s)` image links are handed to the vision backend as-is; with local Ollama the fetch happens on your machine — don't use this tool on URLs from untrusted sources.
+- **Secrets**: API keys are read via `ctx.credentials` or environment variables and are redacted (`[REDACTED]`) in error messages; they are never written to logs or session records.
+
+---
+
 ## Troubleshooting
 
 | Symptom | Fix |
@@ -211,6 +255,19 @@ Or just tell the AI "switch to Ollama / Xiaomi" and let it edit the config.
 | Result says "degraded extraction" | Vision model didn't output JSON; Ollama uses json_schema to force it — if it persists, check model support |
 | Xiaomi API errors | Confirm `XIAOMI_MIMO_API_KEY` is configured (credentials.yaml or env var) |
 | Image over limit | Raise `maxBytes` or compress the image first |
+| Error "baseUrl points at private/reserved address" | Default policy rejects internal endpoints; set `"allowPrivateHosts": true` if you really need it |
+
+---
+
+## Development & tests
+
+Pure helpers (base64, tolerant JSON extraction, evidence normalization, endpoint validation, config merging) live in `lib/pure.js` with zero runtime dependencies, so they are directly unit-testable:
+
+```powershell
+npm test
+```
+
+Requirements: Node ≥ 22.19; after editing `lib/index.js` run `node --check lib/index.js` first.
 
 ---
 

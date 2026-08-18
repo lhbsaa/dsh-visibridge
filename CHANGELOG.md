@@ -6,6 +6,37 @@ The plugin started as a session-scoped dynamic Cordis plugin (`vision-3`, v1–v
 
 ---
 
+## 1.1.0 — 2026-08-18
+
+**合规与安全整改**（基于代码审查：配置规范、死代码清理、端点校验、可测试性、发布规范）。
+
+### Added
+
+- **官方 Config schema**（`export const Config`，Schemastery）：插件现在符合 DSH 配置规范——可在 `cordis.yml` / `cordis.patch.yml` 插件行配置（`--dump-config` 可见），作为部署级默认；工作区 `dsh-vision-config.json` 仍可运行时覆盖（优先级：内置默认 → cordis.yml → 工作区 JSON）
+- **baseUrl 端点校验**（`resolveBaseUrl`）：默认拒绝内网/保留地址（RFC1919、link-local、CGNAT、组播、`.local`），放行 localhost、小米 MiMo 与公网主机；新增 `allowPrivateHosts` 配置项显式放开
+- **`configFile` 配置项**：自定义工作区覆盖配置文件的名字（cordis.yml 中设置）
+- **单元测试**：`test/index.test.js`（node:test，23 例）覆盖 base64、容错 JSON 提取、证据归一化、端点校验、配置合并；`npm test` 运行
+- **发布规范补全**：`LICENSE`（MIT）、`.gitignore`、`engines`（node ≥ 22.19）、`files` 白名单、`keywords`、`repository`、`CHANGELOG` 维护
+
+### Changed
+
+- **纯函数提取到 `lib/pure.js`**（零运行时依赖，可独立单测）；`lib/index.js` 仅保留插件装配与工具执行
+- **删除 `ctx.on('dispose')` 死代码**：Cordis 核心无 `dispose` 事件（events.ts 仅 8 个 `internal/*` 事件）；且 `tools.register` 返回的即为 effect disposer，插件卸载时自动清理——无需手动补清理
+- 配置合并逻辑集中到 `mergeVisionConfig`（含 backend 预设、显式 model 覆盖的语义不变）
+- README（中/英）新增安全说明与配置优先级章节；安装补充 `dsh plugin add` 官方路径
+
+### Fixed
+
+- 修复了后端预设与显式 model 优先级的一个边界：cordis.yml 中显式 `model` 现在与工作区 JSON 的 `model` 同样生效（此前仅 JSON 生效）
+
+### Tested
+
+- `node --test`：23/23 通过
+- `node --check`：lib/index.js、lib/pure.js 语法通过
+- 行为回归：`mergeVisionConfig` 对 ollama/xiaomi/custom 三种后端、显式/自动模型、各层覆盖的语义与原实现一致（单测覆盖）
+
+---
+
 ## 1.0.0 — 2026-08-17
 
 **Host-level release.** Migrated from a session dynamic plugin to a profile bundle plugin; `analyze_image` is registered globally and auto-loaded on every dsh restart.

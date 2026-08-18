@@ -1,14 +1,50 @@
 {
   "name": "dsh-visibridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Host-level vision bridge for text-only models: analyze_image tool (Ollama local / Xiaomi MiMo cloud / any OpenAI-compatible endpoint) returning structured evidence.",
   "type": "module",
   "main": "lib/index.js",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "files": [
+    "lib/",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "exports": {
     ".": "./lib/index.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "vision",
+    "ocr",
+    "ollama",
+    "xiaomi-mimo",
+    "agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lhbsaa/dsh-visibridge.git"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-tools": "0.1.0-rc.6",
+    "@deepseek-ai/schemastery": "^3.18.1"
   },
   "dsh": {
     "bundle": {

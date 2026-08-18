@@ -66,6 +66,8 @@ dsh 启动 → 读 profile 的 dsh.profile.bundles → 加载 dsh-visibridge 包
 
 ### 1. 放置插件包
 
+> 若插件已发布到 npm，可跳过手动放置，直接走官方命令（见下方"从 npm 安装"）。
+
 将整个 `dsh-visibridge` 目录复制到 profile 的 node_modules：
 
 ```powershell
@@ -80,6 +82,16 @@ Copy-Item $src 'C:\Users\Administrator\AppData\Roaming\npm\node_modules\dsh-visi
 ```
 
 > ⚠️ 两个位置都要放：dsh 的插件 loader 从**安装目录**解析包名，而 profile 的 `resolveBundleDir` 从 profile 解析——双保险最稳。
+
+#### 从 npm 安装（推荐，若有发布）
+
+```powershell
+dsh plugin --profile web add dsh-visibridge
+```
+
+`dsh plugin` 会初始化 profile（以 `@deepseek-ai/dsh-base` 为第一层）、pnpm 安装包，并因包声明了 `dsh.bundle` 而自动把 `dsh-visibridge` 追加进 `bundles` 列表（无需手动编辑 profile 的 package.json）。验证与启动与下方步骤 3-4 相同。
+
+**本地目录安装**（未发布/开发时）：`dsh plugin --profile web add G:\gitub-peo\dsh-visibridge` 同样可用。注意：link 场景下插件模块从**源目录**解析，运行时依赖 `@deepseek-ai/dsh-tools` / `@deepseek-ai/schemastery` 必须在仓库内可解析——**先确保仓库已 `pnpm install`**（本项目已通过 peerDependencies + devDependencies 声明）。发布到 npm 后由 pnpm 自动处理，无需此步。
 
 ### 2. 注册 bundle
 
@@ -122,7 +134,25 @@ npx -y @deepseek-ai/dsh --profile web --dump-config | Select-String 'dsh-visibri
 
 ### 5. 配置视觉后端
 
-在工作区根目录创建 `dsh-vision-config.json`：
+配置优先级（低 → 高）：
+
+```
+插件内置默认值 → cordis.yml 插件行 config（Config schema）→ 工作区 dsh-vision-config.json
+```
+
+即：`cordis.yml` 中的配置作为部署级默认；工作区里的 `dsh-vision-config.json` 可以**运行时覆盖**（改文件即生效，无需重启，Agent 也可直接改）。
+
+在 profile 的 `cordis.patch.yml` 中配置（可选，`--dump-config` 可查看）：
+
+```yaml
+- id: dsh-visibridge
+  name: dsh-visibridge
+  config:
+    backend: ollama
+    model: minicpm-v4.5
+```
+
+或在工作区根目录创建 `dsh-vision-config.json`：
 
 ```json
 {
@@ -187,8 +217,12 @@ XIAOMI_MIMO_API_KEY: sk-xxxxxxxx
 | `maxTokens` | `8192` | 视觉模型输出上限 |
 | `maxBytes` | `8388608` | 图片字节上限（8MB） |
 | `authStyle` | 自动 | `"bearer"` / `"api-key"`（默认按端点自动识别） |
-| `keepAlive` | 本地 `30m` | 本地 Ollama 常驻；`false` 关闭 |
-| `structuredOutput` | 本地开启 | `false` 关闭 json_schema 强制 |
+| `keepAlive` | 本地 `30m` | 本地 Ollama 常驻；`false` 关闭（仅 JSON 文件可配） |
+| `structuredOutput` | 本地开启 | `false` 关闭 json_schema 强制（仅 JSON 文件可配） |
+| `allowPrivateHosts` | `false` | 允许 baseUrl 指向内网/保留地址（默认拒绝，见"安全说明"） |
+| `configFile` | `dsh-vision-config.json` | 工作区覆盖配置文件的名字（在 cordis.yml 中设置） |
+
+> `backend` 也可在 cordis.yml 中设置（部署级默认），工作区 JSON 里的 `backend` 优先级更高。
 
 ---
 
@@ -203,6 +237,16 @@ XIAOMI_MIMO_API_KEY: sk-xxxxxxxx
 
 ---
 
+## 安全说明
+
+- **baseUrl 默认校验**：插件启动调用前会校验视觉端点——放行 localhost（本地 Ollama）、已知厂商（xiaomimimo.com）与公网主机；**拒绝内网/保留地址**（RFC1918、link-local、CGNAT、组播、`.local` 等），防止数据外泄与 SSRF。确有内网端点需求时显式设置 `"allowPrivateHosts": true`。
+- **工作区配置文件**：`dsh-vision-config.json` 从会话工作区读取——**打开未知/恶意仓库前请留意其自带的该文件**，它可重定向视觉后端（图片内容会发往该后端）。仅在你信任的目录中放置此文件。
+- **云端后端 = 图片外发**：切换到 `xiaomi` 或 `custom` 云端端点时，本地图片会以 base64 上传到该端点。Ollama 本地后端默认零上传。
+- **远程图片 URL**：`http(s)` 图片链接会原样交给视觉后端抓取；使用本地 Ollama 时该抓取发生在本机，请勿对不受信任来源的 URL 使用此工具。
+- **密钥**：API Key 通过 `ctx.credentials` 或环境变量读取，错误消息中自动脱敏（`[REDACTED]`），不会写入日志或会话记录。
+
+---
+
 ## 常见问题
 
 | 现象 | 处理 |
@@ -212,6 +256,19 @@ XIAOMI_MIMO_API_KEY: sk-xxxxxxxx
 | 识别返回"降级提取" | 视觉模型未按 JSON 输出；Ollama 后端已用 json_schema 强制，若仍出现请确认模型支持 |
 | 小米 API 报错 | 确认 `XIAOMI_MIMO_API_KEY` 已配置（credentials.yaml 或环境变量） |
 | 图片超限 | `maxBytes` 调大或先压缩图片 |
+| 报错"baseUrl 指向内网/保留地址" | 默认策略拒绝内网端点；确需访问时配置 `"allowPrivateHosts": true` |
+
+---
+
+## 开发与测试
+
+纯函数（base64、JSON 容错提取、证据归一化、端点校验、配置合并）位于 `lib/pure.js`，零运行时依赖，可直接单测：
+
+```powershell
+npm test
+```
+
+仓库要求：Node ≥ 22.19；修改 `lib/index.js` 后先 `node --check lib/index.js` 验证语法。
 
 ---
 

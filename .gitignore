@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# npm packing artifacts
+*.tgz
+
+# logs
+*.log
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# local vision config (contains endpoint/key references per workspace)
+dsh-vision-config.json
