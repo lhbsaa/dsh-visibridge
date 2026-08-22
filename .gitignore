@@ -15,3 +15,7 @@ Thumbs.db
 
 # local vision config (contains endpoint/key references per workspace)
 dsh-vision-config.json
+
+__pycache__/
+*.pyc
+
