@@ -10,6 +10,10 @@
 import argparse
 import os
 import sys
+import io
+
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
 import time
 
 import cv2
